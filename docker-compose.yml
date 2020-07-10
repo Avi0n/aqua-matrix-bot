@@ -1,0 +1,25 @@
+version: '3.1'
+
+services:
+  aqua-matrix-bot:
+    #restart: always
+    #image: avi0n/aqua-matrix-bot
+    build: .
+    #env_file: .env
+    container_name: aqua-matrix-bot
+    volumes:
+      - ./bot/data:/opt/aqua/data/
+      - ./bot/db:/opt/aqua/db
+      # Change the location of the SQLite database files 
+      # by replacing "./db" with your custom path
+      #- ./db:/bot/db
+      # Same with "./media"
+      #- ./media:/bot/media
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.0.0/16
