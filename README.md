@@ -1,8 +1,24 @@
 # Aqua Matrix Bot
-
-A bot to count reactions to media files based on [Aqua Telegram Bot](https://gitlab.com/Avi0n/aqua-telegram-bot). Aqua Matrix Bot is based on the template by [anoadragon453](https://github.com/anoadragon453/nio-template) which is a template for [matrix-nio](https://github.com/poljar/matrix-nio). The documentation for
+This project is a WIP and is a rewrite of [Aqua Telegram Bot](https://gitlab.com/Avi0n/aqua-telegram-bot).   
+This is a bot to count reactions to photos and videos. Aqua Matrix Bot is based on the template by [anoadragon453](https://github.com/anoadragon453/nio-template) which is a template for [matrix-nio](https://github.com/poljar/matrix-nio). The documentation for
 matrix-nio can be found
 [here](https://matrix-nio.readthedocs.io/en/latest/nio.html).
+
+# About
+This bot is a fun little karma system for Matrix groups. The bot reacts to any photo/video posted to the room with emojis which you can use to vote with. 👍 is 1 point, 👌 is 2 points, and ❤️ is 3 points.    
+
+Why is it called Aqua? Because this bot was originally thought to be pretty useless, just like the goddess from KonoSuba.    
+
+Requires Docker, Docker Compose, and Python 3.
+Python dependencies are managed by pip in requirements.txt   
+At the moment, Aqua supports up to 3 different Matrix rooms. This was a conscious design decision because I did not want my instance of the bot to be shared and used by unauthorized rooms.
+
+Planned commands for Aqua include:
+*  /karma: Shows the current number of points users in the group chat have
+*  /repost_check: Checks to see if the photo has been posted in the last 30 days
+*  /delete: Deletes the photo that /delete was used on
+*  /source: Finds the source of an image/gif (currently only works with images drawn in the anime style)
+
 
 ## Project structure
 
