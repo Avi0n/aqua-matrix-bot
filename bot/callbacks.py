@@ -25,9 +25,10 @@ class Callbacks(object):
         self.command_prefix = config.command_prefix
 
     # Print json to console
-    async def print_event_json(self, room, event):
+    async def process_event(self, room, event):
         # update = event.source
-        print(json.dumps(event.source, indent=4))
+        #print(json.dumps(event.source, indent=4))
+        print(event.source)
         # If it's a photo/video, send bot reactions
         try:
             msgtype = event.source["content"]["msgtype"]
@@ -37,6 +38,13 @@ class Callbacks(object):
                 )
         except KeyError:
             pass
+        # If it's a user pressing an emoji, store vote
+        # try:
+        #     msgtype = event.source["content"]["m.relates_to"]["rel_type"]
+        #     if msgtype == "m.annotation":
+        #         print("that's an annotation")
+        # except KeyError:
+        #     pass
 
     async def message(self, room, event):
         """Callback for when a message event is received
