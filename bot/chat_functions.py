@@ -1,19 +1,17 @@
+import asyncio
 import logging
-from nio import (
-    SendRetryError
-)
+
 from markdown import markdown
+from nio import SendRetryError
+
+from asyncio_throttle import Throttler
 from emoji import emojize
 
 logger = logging.getLogger(__name__)
 
 
 async def send_text_to_room(
-    client,
-    room_id,
-    message,
-    notice=True,
-    markdown_convert=True
+    client, room_id, message, notice=True, markdown_convert=True
 ):
     """Send text to a matrix room
 
@@ -44,36 +42,30 @@ async def send_text_to_room(
 
     try:
         await client.room_send(
-            room_id,
-            "m.room.message",
-            content,
-            ignore_unverified_devices=True,
+            room_id, "m.room.message", content, ignore_unverified_devices=True,
         )
     except SendRetryError:
         logger.exception(f"Unable to send message response to {room_id}")
 
 
-async def send_reactions_to_message(
-    client,
-    room_id,
-    event_id
-):
-    emoji_list = ["👍", "👌", "❤"]
-    for x in emoji_list:
-        content = {
-            "m.relates_to": {
-                "rel_type": "m.annotation",
-                "event_id": event_id,
-                "key": x
+throttler = Throttler(rate_limit=3, period=40)
+async def send_reactions_to_message(client, room_id, event_id):
+    async with throttler:
+        print(event_id)
+        emoji_list = ["👍", "👌", "❤"]
+        for x in emoji_list:
+            content = {
+                "m.relates_to": {
+                    "rel_type": "m.annotation",
+                    "event_id": event_id,
+                    "key": x,
+                }
             }
-        }
 
-        try:
-            await client.room_send(
-                room_id,
-                "m.reaction",
-                content,
-                ignore_unverified_devices=True,
-            )
-        except SendRetryError:
-            logger.exception(f"Unable to send reaction response to {room_id}")
+            try:
+                await client.room_send(
+                    room_id, "m.reaction", content, ignore_unverified_devices=True,
+                )
+            except Exception as e:  # SendRetryError:
+                print(str(e))
+                logger.exception(f"Unable to send reaction response to {room_id}")
