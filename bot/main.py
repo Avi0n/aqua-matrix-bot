@@ -59,7 +59,7 @@ async def main():
     client.add_event_callback(callbacks.message, (RoomMessageText,))
     client.add_event_callback(callbacks.invite, (InviteMemberEvent,))
     # Comment line below to disable json debugging
-    client.add_event_callback(callbacks.print_event_json, (Event,))
+    client.add_event_callback(callbacks.process_event, (Event,))
 
     # Keep trying to reconnect on failure (with some time in-between)
     while True:
