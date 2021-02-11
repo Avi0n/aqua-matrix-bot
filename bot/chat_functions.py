@@ -1,3 +1,4 @@
+import time
 import asyncio
 import logging
 
@@ -48,12 +49,14 @@ async def send_text_to_room(
         logger.exception(f"Unable to send message response to {room_id}")
 
 
+# Used to be rate_limit=3
 throttler = Throttler(rate_limit=3, period=40)
 async def send_reactions_to_message(client, room_id, event_id):
     async with throttler:
         print(event_id)
         emoji_list = ["👍", "👌", "❤"]
         for x in emoji_list:
+            time.sleep(1)
             content = {
                 "m.relates_to": {
                     "rel_type": "m.annotation",
