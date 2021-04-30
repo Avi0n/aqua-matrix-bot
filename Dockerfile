@@ -22,41 +22,34 @@
 # We use an initial docker container to build all of the runtime dependencies,
 # then transfer those dependencies to the container we're going to ship,
 # before throwing this one away
-ARG PYTHON_VERSION=3.8
-FROM docker.io/python:${PYTHON_VERSION}-alpine3.11 as builder
+#ARG PYTHON_VERSION=3.8
+#FROM docker.io/python:${PYTHON_VERSION}-alpine3.11 as builder
+FROM ubuntu:20.04 AS build-image
+ARG DEBIAN_FRONTEND=noninteractive
 
-##
-## Build libolm for matrix-nio e2e support
-##
-
-# Install libolm build dependencies
-ARG LIBOLM_VERSION=3.1.4
-RUN apk add --no-cache \
-    make \
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     cmake \
     gcc \
-    g++ \
-    git \
-    libffi-dev \
-    python3-dev
+    gfortran \
+    libopenblas-dev \
+    liblapack-dev \
+    libxml2-dev \
+    libxslt-dev \
+    python3-dev \
+    python3-venv \
+    python3-pip \
+    python3-wheel \
+    libolm-dev
 
-# Build libolm at the specified version
-#
-# This will build libolm and place it at /libolm
-# This will also build the libolm python bindings and place them at /python-libs
-# We will later copy contents from both of these folders to the runtime container
-COPY build_and_install_libolm.sh /scripts/
-RUN sh /scripts/build_and_install_libolm.sh ${LIBOLM_VERSION} /python-libs
-
-# Now that libolm is installed, install matrix-nio with e2e dependencies
-# We again install to /python-libs
-RUN pip install --prefix="/python-libs" --no-warn-script-location \
-    "matrix-nio[e2e]"
+RUN python3 -m venv /opt/venv
+# Make sure we use the virtualenv:
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Install requirements
-RUN pip install wheel
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip3 install --upgrade pip && pip3 install setuptools wheel && pip3 install -r requirements.txt
 
 ##
 ## Creating the runtime container
@@ -64,23 +57,16 @@ RUN pip install -r requirements.txt
 
 # Create the container we'll actually ship. We need to copy libolm and any
 # python dependencies that we built above to this container
-FROM docker.io/python:${PYTHON_VERSION}-alpine3.11
+FROM ubuntu:20.04
+ARG DEBIAN_FRONTEND=noninteractive
 
-# Copy python dependencies from the "builder" container
-COPY --from=builder /python-libs /usr/local
-
-# Copy libolm from the "builder" container
-COPY --from=builder /usr/local/lib/libolm* /usr/local/lib/
-
-# Copy pacakges from the "builder" container
-COPY --from=builder /usr/local/lib/python3.8/site-packages /usr/local/lib/python3.8/site-packages
-# Install any native runtime dependencies
-RUN apk add --no-cache \
-    libstdc++
+RUN apt-get update && apt-get install -y python3-venv libolm-dev
+COPY --from=build-image /opt/venv /opt/venv
 
 WORKDIR /opt/aqua
 COPY bot/ .
 COPY config.yaml .
 
-#RUN pip list -v
-CMD [ "python", "-u", "main.py" ]
+# Make sure we use the virtualenv
+ENV PATH="/opt/venv/bin:$PATH"
+CMD [ "python3", "-u", "main.py" ]

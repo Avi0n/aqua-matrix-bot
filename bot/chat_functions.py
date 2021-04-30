@@ -51,10 +51,12 @@ async def send_text_to_room(
 
 # Used to be rate_limit=3
 throttler = Throttler(rate_limit=3, period=40)
-async def send_reactions_to_message(client, room_id, event_id):
+async def send_reactions_to_message(client, room_id, event_id, repost):
     async with throttler:
-        print(event_id)
-        emoji_list = ["👍", "👌", "❤"]
+        if repost is False:
+            emoji_list = ["👍", "👌", "❤"]
+        elif repost is True:
+            emoji_list = ["Repost", "👍", "👌", "❤"]
         for x in emoji_list:
             time.sleep(1)
             content = {
@@ -70,5 +72,5 @@ async def send_reactions_to_message(client, room_id, event_id):
                     room_id, "m.reaction", content, ignore_unverified_devices=True,
                 )
             except Exception as e:  # SendRetryError:
-                print(str(e))
+                print(f"send_reaction_to_message() exception: {e}")
                 logger.exception(f"Unable to send reaction response to {room_id}")

@@ -20,13 +20,17 @@ from aiohttp import (
 from callbacks import Callbacks
 from config import Config
 from storage import Storage
+from sqlite_functions import check_dbs_exist
 
 logger = logging.getLogger(__name__)
 
 
 async def main():
-    # Read config file
+    logger.info("Starting Aqua Matrix Bot v0.1")
+    # Check to see if all db tables exist
+    check_dbs_exist()
 
+    # Read config file
     # A different config file path can be specified as the first command line argument
     if len(sys.argv) > 1:
         config_filepath = sys.argv[1]
