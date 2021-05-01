@@ -54,12 +54,9 @@ class Callbacks(object):
 
         # If event is a reaction, store the vote
         try:
-            if event.source["type"] == "m.reaction":
+            if event.source["type"] == "m.reaction" and event.sender != self.config.user_id:
                 reaction = emoji.demojize(event.source["content"]["m.relates_to"]["key"])
 
-                # "\ud83d\udc4d", "\ud83d\udc4c", "\u2764"
-                # print('\N{thumbs up sign}')
-                # "👍", "👌", "❤"
                 points = None
                 if reaction == ":thumbs_up:":
                     points = 1
@@ -80,7 +77,7 @@ class Callbacks(object):
                         # Update media poster's points
                         await db.update_user_karma(database, og_sender, "+", points)
         except Exception as e:
-            print(f"Exception line 83: {e}")
+            print(f"Exception in storing reaction vote: {e}")
             pass
 
         # If event is a redaction, see if we need to remove points
