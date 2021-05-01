@@ -56,7 +56,8 @@ async def send_reactions_to_message(client, room_id, event_id, repost):
         if repost is False:
             emoji_list = ["👍", "👌", "❤"]
         elif repost is True:
-            emoji_list = ["Repost", "👍", "👌", "❤"]
+            #emoji_list = ["Repost", "👍", "👌", "❤"]
+            emoji_list = ["Repost", "\ud83d\udc4d", "\ud83d\udc4c", "\u2764"]
         for x in emoji_list:
             time.sleep(1)
             content = {

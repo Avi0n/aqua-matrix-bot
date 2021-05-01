@@ -1,7 +1,7 @@
 import asyncio
 
 from chat_functions import send_text_to_room
-from sqlite_functions import populate_db
+from sqlite_functions import populate_db, get_user_karma
 
 class Command(object):
     def __init__(self, client, store, config, command, room, event):
@@ -32,6 +32,8 @@ class Command(object):
         """Process the command"""
         if self.command.startswith("add"):
             await self._add()
+        elif self.command.startswith("karma"):
+            await self._karma()
         elif self.command.startswith("help"):
             await self._show_help()
         else:
@@ -61,6 +63,15 @@ class Command(object):
             await send_text_to_room(self.client, self.room.room_id, text)
         except Exception as e:
             print(str(e))
+
+
+    async def _karma(self):
+        """Send message containing all user points"""
+        try:
+            text = await get_user_karma(self.room.room_id[1:].replace(":", "_"))
+            await send_text_to_room(self.client, self.room.room_id, text)  
+        except Exception as e:
+            print(f"Exception in _karma(): {e}")   
 
 
     async def _show_help(self):

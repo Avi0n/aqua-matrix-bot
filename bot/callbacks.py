@@ -2,13 +2,14 @@ from chat_functions import send_text_to_room, send_reactions_to_message
 from bot_commands import Command
 from nio import JoinError, DownloadResponse, DownloadError, crypto
 from message_responses import Message
-from sqlite_functions import store_hash, fetch_30d_hashes
+import sqlite_functions as db
 
 from urllib.parse import urlparse
 import aiofiles
 import asyncio
 import imagehash
 from PIL import Image
+import emoji
 import os
 import json
 import logging
@@ -48,7 +49,50 @@ class Callbacks(object):
         4) Function to run through all event_ids, compare hash to all previous hashes, and react with "Repost (DATE)" if repost
         4) Function to delete all db records WHERE 'reacted_to and hashed are TRUE'
         """
-        # If it's a photo/video, send bot reactions
+
+        database = room.room_id[1:].replace(":", "_")
+
+        # If event is a reaction, store the vote
+        try:
+            if event.source["type"] == "m.reaction":
+                reaction = emoji.demojize(event.source["content"]["m.relates_to"]["key"])
+
+                # "\ud83d\udc4d", "\ud83d\udc4c", "\u2764"
+                # print('\N{thumbs up sign}')
+                # "👍", "👌", "❤"
+                points = None
+                if reaction == ":thumbs_up:":
+                    points = 1
+                elif reaction == ":OK_hand:":
+                    points = 2
+                elif reaction == ":red_heart:":
+                    points = 3
+                else:
+                    print("Not a recognized emoji")
+
+                if points is not None:                    
+                    # Find original post's sender
+                    og_sender = await db.find_sender(database, event.source["content"]["m.relates_to"]["event_id"])
+
+                    if og_sender is not None:                    
+                        # Add reaction info to table (in case we need to retract points later)
+                        await db.update_reaction_info(database, event.event_id, event.sender, points)
+                        # Update media poster's points
+                        await db.update_user_karma(database, og_sender, "+", points)
+        except Exception as e:
+            print(f"Exception line 83: {e}")
+            pass
+
+        # If event is a redaction, see if we need to remove points
+        try:
+            if event.source["type"] == "m.room.redaction":
+                result = await db.get_reaction_info(database, event.redacts)
+                
+                # Subtract points that were redacted
+                await db.update_user_karma(database, result[0], "-", result[1])
+        except Exception as e:
+            print(f"Exception in redaction func: {e}")
+        # If event is a photo/video, send bot reactions
         try:
             msgtype = event.source["content"]["msgtype"]
             if msgtype == "m.video":
@@ -98,10 +142,7 @@ class Callbacks(object):
                                 ))
                 except Exception as e:
                     print(f"Exception while downloading image data: {e}")
-                # await add_to_queue(room.room_id, event.event_id)
-
-                # Hash image and store in database
-                database = room.room_id[1:].replace(":", "_")
+                # await add_to_queue(room.room_id, event.event_id)                
 
                 # Hash image
                 image_hash = imagehash.phash(Image.open(f"./data/{filename}"))
@@ -112,7 +153,7 @@ class Callbacks(object):
                 print(f"event_id: {event.event_id[1:]}")
 
                 # Check if image is a repost within the last 30 days
-                hash_list_30 = await fetch_30d_hashes(database)
+                hash_list_30 = await db.fetch_30d_hashes(database)
                 # Compare hash for message command was used on with hashes from past 30 days
                 message_id_dupe_list = []
                 dupes_30d = 0
@@ -130,21 +171,16 @@ class Callbacks(object):
                     reposted_bool = False
 
                 # Store hash in db
-                await store_hash(database, event.event_id, str(image_hash))
+                await db.store_hash(database, event.event_id, str(image_hash))
+
+                # Store event_id and poster's username in message_karma table
+                await db.update_event_info(database, event.event_id, event.source["sender"])
 
                 # Send reactions
                 await send_reactions_to_message(self.client, room.room_id,
                                                 event.event_id, reposted_bool)
         except KeyError:
             pass
-
-        # If it's a user pressing an emoji, store vote
-        # try:
-        #     msgtype = event.source["content"]["m.relates_to"]["rel_type"]
-        #     if msgtype == "m.annotation":
-        #         print("that's an annotation")
-        # except KeyError:
-        #     pass
 
     async def message(self, room, event):
         """Callback for when a message event is received

@@ -60,7 +60,9 @@ def check_dbs_exist():
 def populate_db(database):
     print("Entered populate_db")
     populated_status = False
-    table_list = ["message_karma", "user_karma", "media_hash", "media_tags"]
+    table_list = [
+        "event_info", "reaction_info", "user_karma", "media_hash", "media_tags"
+    ]
 
     for x in range(len(table_list)):
         try:
@@ -75,20 +77,24 @@ def populate_db(database):
 
             populated_status = True
         except:
-            if table_list[x] == "message_karma":
+            if table_list[x] == "event_info":
                 sql = '''
-                        CREATE TABLE message_karma (
+                        CREATE TABLE event_info (
                             event_id TEXT NOT NULL,
-                            username TEXT(20) DEFAULT NULL,
-                            thumbsup int(4) NOT NULL,
-                            ok_hand int(4) NOT NULL,
-                            heart int(4) NOT NULL
+                            username TEXT NOT NULL
+                        )'''
+            elif table_list[x] == "reaction_info":
+                sql = '''
+                        CREATE TABLE reaction_info (
+                            event_id TEXT NOT NULL,
+                            username TEXT NOT NULL,
+                            points INT DEFAULT NULL
                         )'''
             elif table_list[x] == "user_karma":
                 sql = '''
                         CREATE TABLE user_karma (
                             username TEXT NOT NULL,
-                            karma int(11) DEFAULT NULL
+                            karma INT DEFAULT NULL
                         )'''
             elif table_list[x] == "media_hash":
                 # Create tables
@@ -115,7 +121,6 @@ def populate_db(database):
 
     cursor.close()
     db.close()
-
     """ I'm not sure what I was trying accomplish here...
     if populated_status is False:
     # Add group's room_id to the group_members table
@@ -149,7 +154,7 @@ async def get_user_karma(database):
         # Fetch all the rows in a list of lists.
         results = await cursor.fetchall()
 
-        return_message = "```\n"
+        return_message = ""
 
         # Find length of longest username and karma
         longest_username_length = 0
@@ -164,10 +169,10 @@ async def get_user_karma(database):
             karma_points = row[1]
             return_message += username + (
                 " " * (longest_username_length - len(username))) + "   " + (
-                    " " * (longest_karma_length -
-                           len(str(karma_points)))) + str(karma_points) + "\n"
+                    " " * (longest_karma_length - len(str(karma_points)))
+                ) + str(karma_points) + "  \n"
 
-        return_message += "\n```" + emojize(":v:", use_aliases=True)
+        #return_message += "  \n"
 
     except Exception as e:
         return_message += "Error: " + str(e)
@@ -195,7 +200,7 @@ async def update_user_karma(database, username, plus_or_minus, points):
         # Add username to the database along with
         # the points that were just added
         sql = "INSERT INTO user_karma VALUES ('" + username + "', " \
-              + points + ");"
+              + str(points) + ");"
         try:
             # Execute the SQL command
             await cursor.execute(sql)
@@ -208,8 +213,9 @@ async def update_user_karma(database, username, plus_or_minus, points):
         finally:
             await cursor.close()
     else:
-        sql = "UPDATE user_karma SET karma = karma" + plus_or_minus + points \
+        sql = "UPDATE user_karma SET karma = karma" + plus_or_minus + str(points) \
               + " WHERE username = '" + username + "';"
+        print(str(sql))
         try:
             # Execute the SQL command
             await cursor.execute(sql)
@@ -224,28 +230,11 @@ async def update_user_karma(database, username, plus_or_minus, points):
     await db.close()
 
 
-# Update a event_id's points
-async def update_message_karma(database, event_id, username, query_data,
-                               loop):
-    user_voted = False
-
-    thumb_points = 0
-    ok_points = 0
-    heart_points = 0
-    # Figure out which column to update
-    if int(query_data) == 1:
-        emoji_symbol = "thumbsup"
-        thumb_points = 1
-    elif int(query_data) == 2:
-        emoji_symbol = "ok_hand"
-        ok_points = 1
-    elif int(query_data) == 3:
-        emoji_symbol = "heart"
-        heart_points = 1
-
+# Add new event_id/username info
+async def update_event_info(database, event_id, username):
     db = await aiosqlite.connect("db/" + database + ".db")
-    sql = "SELECT * FROM message_karma WHERE event_id = " + \
-          str(event_id) + " AND username = '" + username + "';"
+    sql = "SELECT * FROM event_info WHERE event_id = '" + \
+          event_id + "' AND username = '" + username + "';"
     cursor = await db.cursor()
     # Check if this event_id exists in the db already
     try:
@@ -254,12 +243,11 @@ async def update_message_karma(database, event_id, username, query_data,
         # Fetch one row
         result = await cursor.fetchone()
     except Exception as e:
-        print("Error: " + str(e))
+        print("Error in update_event_info: " + str(e))
     if result is None:
-        # Insert new row with event_id, username, and emoji point values
-        sql = "INSERT INTO message_karma VALUES (" + str(event_id) + ", '" \
-              + username + "', " + str(thumb_points) + ", " + str(ok_points) \
-              + ", " + str(heart_points) + ");"
+        # Insert new row with event_id, and username
+        sql = "INSERT INTO event_info VALUES ('" + event_id + "', '" \
+              + username + "');"
         try:
             # Execute the SQL command
             await cursor.execute(sql)
@@ -268,43 +256,33 @@ async def update_message_karma(database, event_id, username, query_data,
         except Exception as e:
             # Rollback in case there is any error
             await db.rollback()
-            print("update_message_karma insert error: " + str(e))
+            print("update_event_info insert error: " + str(e))
         finally:
             await cursor.close()
     else:
-        # If user has already voted, check to see if this specific emoji has
-        # already been pressed
-        if int(query_data) == 1:
-            if int(result[2]) != 0:
-                # Change specified emoji field to 0 since user is
-                # taking back reaction
-                sql = "UPDATE message_karma SET thumbsup = 0" \
-                    + " WHERE event_id = " + str(event_id) \
-                    + " AND username = '" + username + "';"
-                user_voted = True
-        elif int(query_data) == 2:
-            if int(result[3]) != 0:
-                # Change specified emoji field to 0 since user is
-                # taking back reaction
-                sql = "UPDATE message_karma SET ok_hand = 0" \
-                    + " WHERE event_id = " + str(event_id) \
-                    + " AND username = '" + username + "';"
-                user_voted = True
-        elif int(query_data) == 3:
-            if int(result[4]) != 0:
-                # Change specified emoji field to 0 since user is
-                # taking back reaction
-                sql = "UPDATE message_karma SET heart = 0" \
-                    + " WHERE event_id = " + str(event_id) \
-                    + " AND username = '" + username + "';"
-                user_voted = True
-        # If user hasn't already pressed the emoji, add point to db
-        if user_voted is False:
-            # Update emoji points that user has given a specific event_id
-            sql = "UPDATE message_karma SET " + emoji_symbol + " = " \
-                + emoji_symbol + " + 1" \
-                + " WHERE event_id = " + str(event_id) \
-                + " AND username = '" + username + "';"
+        print("Ran into else in update_message_karma()")
+
+    await db.close()
+
+
+# Update reaction info (user reacting to another user's post)
+async def update_reaction_info(database, event_id, username, points):
+    db = await aiosqlite.connect("db/" + database + ".db")
+    sql = "SELECT * FROM reaction_info WHERE event_id = '" + \
+          event_id + "' AND username = '" + username + "';"
+    cursor = await db.cursor()
+    # Check if this event_id exists in the db already
+    try:
+        # Execute the SQL command
+        await cursor.execute(sql)
+        # Fetch one row
+        result = await cursor.fetchone()
+    except Exception as e:
+        print("Error in update_reaction_info: " + str(e))
+    if result is None:
+        # Insert new row with event_id, username, and emoji point values
+        sql = "INSERT INTO reaction_info VALUES ('" + event_id + "', '" \
+              + username + "', " + str(points) + ");"
         try:
             # Execute the SQL command
             await cursor.execute(sql)
@@ -313,14 +291,56 @@ async def update_message_karma(database, event_id, username, query_data,
         except Exception as e:
             # Rollback in case there is any error
             await db.rollback()
-            print("update_message_karma error: " + str(e))
+            print("update_reaction_info insert error: " + str(e))
         finally:
             await cursor.close()
+    else:
+        print("Ran into else in update_reaction_info()")
+
     await db.close()
 
-    # Return true if user has pressed this emoji already
-    # Return false if user has not pressed this emoji already
-    return user_voted
+
+# Get reaction_info
+async def get_reaction_info(database, event_id):
+    db = await aiosqlite.connect("db/" + database + ".db")
+    sql = "SELECT username, points FROM reaction_info WHERE event_id = '" + event_id + "';"
+    cursor = await db.cursor()
+
+    try:
+        # Execute the SQL command
+        await cursor.execute(sql)
+        # Fetch one row
+        result = await cursor.fetchone()
+    except Exception as e:
+        print("Error in get_room_id: " + str(e))
+    finally:
+        await cursor.close()
+    await db.close()
+
+    return result
+
+
+# Find event_id's sender
+async def find_sender(database, event_id):
+    db = await aiosqlite.connect("db/" + database + ".db")
+    sql = "SELECT username FROM event_info WHERE event_id = '" + \
+          event_id + "';"
+    cursor = await db.cursor()
+
+    try:
+        # Execute the SQL command
+        await cursor.execute(sql)
+        # Fetch one row
+        result = await cursor.fetchone()
+    except Exception as e:
+        print(f"Exception in find_sender(): {e}")
+    finally:
+        await cursor.close()
+
+    await db.close()
+
+    if result is not None:
+        return result[0]
 
 
 # Delete event_id row from database
@@ -373,47 +393,6 @@ async def check_emoji_points(database, event_id):
         await cursor.close()
     await db.close()
     return result
-
-
-# Get total karma per user for a specific message
-async def get_message_karma(database, event_id):
-    return_message = "Votes\n\n"
-
-    db = await aiosqlite.connect("db/" + database + ".db")
-    # Multiply ok_hand by 2 and heart by 3 to get correct sum of votes
-    sql = "SELECT username, SUM(thumbsup + ok_hand*2 + heart*3) AS karma " \
-          + "FROM message_karma WHERE event_id = " + str(event_id) \
-          + " GROUP BY username HAVING karma <> 0 ORDER BY username;"
-    cursor = await db.cursor()
-
-    try:
-        # Execute the SQL command
-        await cursor.execute(sql)
-        # Fetch all the rows in a list of lists.
-        results = await cursor.fetchall()
-
-        # Find length of longest username and karma
-        longest_username_length = 0
-        longest_karma_length = 0
-        for row in results:
-            longest_username_length = max(longest_username_length, len(row[0]))
-            longest_karma_length = max(longest_karma_length, len(str(row[1])))
-
-        # Add each user and karma as its own row
-        for row in results:
-            username = row[0]
-            karma_points = row[1]
-            return_message += username + (
-                " " * (longest_username_length - len(username))) + "   " + (
-                    " " * (longest_karma_length -
-                           len(str(karma_points)))) + str(karma_points) + "\n"
-    except Exception as e:
-        return_message += "Error"
-        print("Error in get_message_karma: " + str(e))
-    finally:
-        await cursor.close()
-    await db.close()
-    return return_message
 
 
 # Get user's personal room_id with Aqua
@@ -520,8 +499,7 @@ async def store_hash(database, event_id, media_hash):
 async def fetch_one_hash(event_id, database):
     db = await aiosqlite.connect("db/" + database + ".db")
     # Fetch a specific event_id's associated hash
-    sql = "SELECT hash FROM media_hash WHERE event_id = " + str(
-        event_id) + ";"
+    sql = "SELECT hash FROM media_hash WHERE event_id = " + str(event_id) + ";"
     cursor = await db.cursor()
 
     try:
