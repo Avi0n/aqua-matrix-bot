@@ -54,8 +54,10 @@ class Callbacks(object):
 
         # If event is a reaction, store the vote
         try:
-            if event.source["type"] == "m.reaction" and event.sender != self.config.user_id:
-                reaction = emoji.demojize(event.source["content"]["m.relates_to"]["key"])
+            if event.source[
+                    "type"] == "m.reaction" and event.sender != self.config.user_id:
+                reaction = emoji.demojize(
+                    event.source["content"]["m.relates_to"]["key"])
 
                 points = None
                 if reaction == ":thumbs_up:":
@@ -67,15 +69,19 @@ class Callbacks(object):
                 else:
                     print("Not a recognized emoji")
 
-                if points is not None:                    
+                if points is not None:
                     # Find original post's sender
-                    og_sender = await db.find_sender(database, event.source["content"]["m.relates_to"]["event_id"])
+                    og_sender = await db.find_sender(
+                        database,
+                        event.source["content"]["m.relates_to"]["event_id"])
 
-                    if og_sender is not None:                    
+                    if og_sender is not None:
                         # Add reaction info to table (in case we need to retract points later)
-                        await db.update_reaction_info(database, event.event_id, event.sender, points)
+                        await db.update_reaction_info(database, event.event_id,
+                                                      event.sender, points)
                         # Update media poster's points
-                        await db.update_user_karma(database, og_sender, "+", points)
+                        await db.update_user_karma(database, og_sender, "+",
+                                                   points)
         except Exception as e:
             print(f"Exception in storing reaction vote: {e}")
             pass
@@ -89,7 +95,7 @@ class Callbacks(object):
             elif msgtype == "m.image":
                 # See if it's E2EE
                 try:
-                    if "encrypt" in event.source:
+                    if "key_ops" in str(event.source):
                         encrypted_image = True
                         print(f"encrypted_image={encrypted_image}")
                     else:
@@ -100,23 +106,26 @@ class Callbacks(object):
 
                 # See if there's a thumbnail URL
                 try:
-                    if "thumbnail" in event.source:
+                    if "thumbnail" in str(event.source):
                         if encrypted_image is False:
-                            image_url = event.source["content"]["info"]["thumbnail_url"]
+                            image_url = event.source["content"]["info"][
+                                "thumbnail_url"]
                         elif encrypted_image is True:
-                            image_url = event.source["content"]["info"]["thumbnail_file"]["url"]
+                            image_url = event.source["content"]["info"][
+                                "thumbnail_file"]["url"]
                     else:
                         if encrypted_image is False:
                             image_url = event.source["content"]["url"]
                         elif encrypted_image is True:
-                            image_url = event.source["content"]["url"]
-                            print("not sure what to assign image_url as yet.")
+                            image_url = event.source["content"]["file"]["url"]
                 except Exception as e:
                     print(f"Exception while trying to assign file URL: {e}")
                 try:
                     parsed_url = urlparse(image_url)
                 except Exception as e:
-                    print(f"Exception while trying to assign E2EE thumbnail: {e}")       
+                    print(
+                        f"Exception while trying to assign E2EE thumbnail: {e}"
+                    )
 
                 try:
                     # Download image data
@@ -144,40 +153,47 @@ class Callbacks(object):
                                 ))
                 except Exception as e:
                     print(f"Exception while downloading image data: {e}")
-                # await add_to_queue(room.room_id, event.event_id)                
+                # await add_to_queue(room.room_id, event.event_id)
 
-                # Hash image
-                image_hash = imagehash.phash(Image.open(f"./data/{filename}"))
-                print(str(image_hash))
+                try:
+                    # Hash image
+                    image_hash = imagehash.phash(
+                        Image.open(f"./data/{filename}"))
+                    print(str(image_hash))
 
-                # Delete image
-                os.remove(f"./data/{filename}")
-                print(f"event_id: {event.event_id[1:]}")
+                    # Delete image
+                    os.remove(f"./data/{filename}")
+                    print(f"event_id: {event.event_id[1:]}")
 
-                # Check if image is a repost within the last 30 days
-                hash_list_30 = await db.fetch_30d_hashes(database)
-                # Compare hash for message command was used on with hashes from past 30 days
-                message_id_dupe_list = []
-                dupes_30d = 0
-                for x in range(len(hash_list_30)):
-                    # If the hash difference is less than 10, assume it is a duplicate
-                    if (imagehash.hex_to_hash(str(image_hash)) -
-                            imagehash.hex_to_hash(hash_list_30[x][1])) < 10:
-                        dupes_30d += 1
-                        # Store duplicate photo event ids
-                        message_id_dupe_list.append(str(hash_list_30[x][0]))
-                print(f"dupes_30d: {dupes_30d}")
-                if dupes_30d > 0:
-                    reposted_bool = True
-                else:
-                    reposted_bool = False
+                    # Check if image is a repost within the last 30 days
+                    hash_list_30 = await db.fetch_30d_hashes(database)
+                    # Compare hash for message command was used on with hashes from past 30 days
+                    message_id_dupe_list = []
+                    dupes_30d = 0
+                    for x in range(len(hash_list_30)):
+                        # If the hash difference is less than 10, assume it is a duplicate
+                        if (imagehash.hex_to_hash(str(image_hash)) -
+                                imagehash.hex_to_hash(
+                                    hash_list_30[x][1])) < 10:
+                            dupes_30d += 1
+                            # Store duplicate photo event ids
+                            message_id_dupe_list.append(str(
+                                hash_list_30[x][0]))
+                    print(f"dupes_30d: {dupes_30d}")
+                    if dupes_30d > 0:
+                        reposted_bool = True
+                    else:
+                        reposted_bool = False
 
-                # Store hash in db
-                await db.store_hash(database, event.event_id, str(image_hash))
+                    # Store hash in db
+                    await db.store_hash(database, event.event_id,
+                                        str(image_hash))
 
-                # Store event_id and poster's username in message_karma table
-                await db.update_event_info(database, event.event_id, event.source["sender"])
-
+                    # Store event_id and poster's username in message_karma table
+                    await db.update_event_info(database, event.event_id,
+                                               event.source["sender"])
+                except Exception as e:
+                    print(f"Exception while while in hash process: {e}")
                 # Send reactions
                 await send_reactions_to_message(self.client, room.room_id,
                                                 event.event_id, reposted_bool)
@@ -188,7 +204,7 @@ class Callbacks(object):
         try:
             if event.source["type"] == "m.room.redaction":
                 result = await db.get_reaction_info(database, event.redacts)
-                
+
                 # Subtract points that were redacted
                 await db.update_user_karma(database, result[0], "-", result[1])
         except Exception as e:
