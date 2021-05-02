@@ -80,15 +80,6 @@ class Callbacks(object):
             print(f"Exception in storing reaction vote: {e}")
             pass
 
-        # If event is a redaction, see if we need to remove points
-        try:
-            if event.source["type"] == "m.room.redaction":
-                result = await db.get_reaction_info(database, event.redacts)
-                
-                # Subtract points that were redacted
-                await db.update_user_karma(database, result[0], "-", result[1])
-        except Exception as e:
-            print(f"Exception in redaction func: {e}")
         # If event is a photo/video, send bot reactions
         try:
             msgtype = event.source["content"]["msgtype"]
@@ -96,21 +87,36 @@ class Callbacks(object):
                 await send_reactions_to_message(self.client, room.room_id,
                                                 event.event_id, False)
             elif msgtype == "m.image":
-                # Check if it's encrypted
+                # See if it's E2EE
                 try:
-                    thumb_url = event.source["content"]["info"][
-                        "thumbnail_url"]
-                    encrypted_image = False
-                except Exception as e:
-                    print(str(e))
-                    try:
-                        thumb_url = event.source["content"]["info"][
-                            "thumbnail_file"]["url"]
+                    if "encrypt" in event.source:
                         encrypted_image = True
-                    except Exception as e:
-                        print(str(e))
+                        print(f"encrypted_image={encrypted_image}")
+                    else:
+                        encrypted_image = False
+                        print(f"encrypted_image={encrypted_image}")
+                except Exception as e:
+                    print(f"Exception while checking for E2EE key: {e}")
 
-                parsed_url = urlparse(thumb_url)
+                # See if there's a thumbnail URL
+                try:
+                    if "thumbnail" in event.source:
+                        if encrypted_image is False:
+                            image_url = event.source["content"]["info"]["thumbnail_url"]
+                        elif encrypted_image is True:
+                            image_url = event.source["content"]["info"]["thumbnail_file"]["url"]
+                    else:
+                        if encrypted_image is False:
+                            image_url = event.source["content"]["url"]
+                        elif encrypted_image is True:
+                            image_url = event.source["content"]["url"]
+                            print("not sure what to assign image_url as yet.")
+                except Exception as e:
+                    print(f"Exception while trying to assign file URL: {e}")
+                try:
+                    parsed_url = urlparse(image_url)
+                except Exception as e:
+                    print(f"Exception while trying to assign E2EE thumbnail: {e}")       
 
                 try:
                     # Download image data
@@ -119,7 +125,6 @@ class Callbacks(object):
                     filename = event.body
 
                     # Write image data to file
-                    print(f"is encrypted: {encrypted_image}")
                     if encrypted_image is False:
                         async with aiofiles.open(f"./data/{filename}",
                                                  "wb") as f:
@@ -178,6 +183,16 @@ class Callbacks(object):
                                                 event.event_id, reposted_bool)
         except KeyError:
             pass
+
+        # If event is a redaction, see if we need to remove points
+        try:
+            if event.source["type"] == "m.room.redaction":
+                result = await db.get_reaction_info(database, event.redacts)
+                
+                # Subtract points that were redacted
+                await db.update_user_karma(database, result[0], "-", result[1])
+        except Exception as e:
+            print(f"Exception in redaction func: {e}")
 
     async def message(self, room, event):
         """Callback for when a message event is received
