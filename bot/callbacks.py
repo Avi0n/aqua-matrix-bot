@@ -38,10 +38,6 @@ class Callbacks(object):
         #print(room.room_id)
         #print(json.dumps(room.source, indent=4))
         """
-        Example event.source:
-        {'type': 'm.room.message', 'sender': '@avion:pcg.life', 'content': {'body': 'image.png', 'info': {'size': 7583817, 'mimetype': 'image/png', 'thumbnail_info': {'w': 320, 'h': 600, 'mimetype': 'image/png', 'size': 275042}, 'w': 2189, 'h': 4096, 'thumbnail_url': 'mxc://pcg.life/04aab12c312b3293f961b5b9b28974611a612ff9'}, 'msgtype': 'm.image', 'url': 'mxc://pcg.life/0a98492dbe197a234e987778288ada09ed6a63ca'}, 'origin_server_ts': 1619648554322, 'unsigned': {'age': 68}, 'event_id': '$JBfRDkYvMmM-KTEh26CgMVchzwpDQo5vJCr3908N1J4'}
-        """
-        """
         New workflow will be:
         1) If m.image, store event_id in a db with columns 'room_id, event_id, reacted_to, hashed'
         2) send_reactions_to_message will send 3 emoji reactions marking reacted_to as T when complete
@@ -107,6 +103,7 @@ class Callbacks(object):
                 # See if there's a thumbnail URL
                 try:
                     if "thumbnail" in str(event.source):
+                        thumbnail = True
                         if encrypted_image is False:
                             image_url = event.source["content"]["info"][
                                 "thumbnail_url"]
@@ -114,6 +111,7 @@ class Callbacks(object):
                             image_url = event.source["content"]["info"][
                                 "thumbnail_file"]["url"]
                     else:
+                        thumbnail = False
                         if encrypted_image is False:
                             image_url = event.source["content"]["url"]
                         elif encrypted_image is True:
@@ -139,18 +137,31 @@ class Callbacks(object):
                                                  "wb") as f:
                             await f.write(media_data.body)
                     elif encrypted_image is True:
-                        async with aiofiles.open(f"./data/{filename}",
-                                                 "wb") as f:
-                            await f.write(
-                                crypto.attachments.decrypt_attachment(
-                                    media_data.body,
-                                    event.source["content"]["info"]
-                                    ["thumbnail_file"]["key"]["k"],
-                                    event.source["content"]["info"]
-                                    ["thumbnail_file"]["hashes"]["sha256"],
-                                    event.source["content"]["info"]
-                                    ["thumbnail_file"]["iv"],
-                                ))
+                        if thumbnail is True:
+                            async with aiofiles.open(f"./data/{filename}",
+                                                     "wb") as f:
+                                await f.write(
+                                    crypto.attachments.decrypt_attachment(
+                                        media_data.body,
+                                        event.source["content"]["info"]
+                                        ["thumbnail_file"]["key"]["k"],
+                                        event.source["content"]["info"]
+                                        ["thumbnail_file"]["hashes"]["sha256"],
+                                        event.source["content"]["info"]
+                                        ["thumbnail_file"]["iv"],
+                                    ))
+                        else:
+                            async with aiofiles.open(f"./data/{filename}",
+                                                     "wb") as f:
+                                await f.write(
+                                    crypto.attachments.decrypt_attachment(
+                                        media_data.body,
+                                        event.source["content"]["file"]["key"]
+                                        ["k"],
+                                        event.source["content"]["file"]
+                                        ["hashes"]["sha256"],
+                                        event.source["content"]["file"]["iv"],
+                                    ))
                 except Exception as e:
                     print(f"Exception while downloading image data: {e}")
                 # await add_to_queue(room.room_id, event.event_id)
@@ -205,6 +216,9 @@ class Callbacks(object):
             if event.source["type"] == "m.room.redaction":
                 result = await db.get_reaction_info(database, event.redacts)
 
+                # result might be None if user is deleting an image/message
+                # Need to also delete has for message id if it's an image
+                # if result is not None:
                 # Subtract points that were redacted
                 await db.update_user_karma(database, result[0], "-", result[1])
         except Exception as e:
