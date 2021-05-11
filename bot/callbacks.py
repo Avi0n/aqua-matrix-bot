@@ -34,7 +34,8 @@ class Callbacks(object):
 
     # Print json to console
     async def process_event(self, room, event):
-        print(json.dumps(event.source, indent=4))
+        if event.sender != self.config.user_id:
+            print(json.dumps(event.source, indent=4))
         #print(room.room_id)
         #print(json.dumps(room.source, indent=4))
         """
@@ -102,7 +103,8 @@ class Callbacks(object):
 
                 # See if there's a thumbnail URL
                 try:
-                    if "thumbnail" in str(event.source):
+                    thumbnail = None
+                    if "thumbnail" in str(event.source) and thumbnail is None:
                         thumbnail = True
                         if encrypted_image is False:
                             image_url = event.source["content"]["info"][
@@ -120,6 +122,7 @@ class Callbacks(object):
                     print(f"Exception while trying to assign file URL: {e}")
                 try:
                     parsed_url = urlparse(image_url)
+                    print(f"parsed_url: {parsed_url}")
                 except Exception as e:
                     print(
                         f"Exception while trying to assign E2EE thumbnail: {e}"
@@ -167,6 +170,8 @@ class Callbacks(object):
                 # await add_to_queue(room.room_id, event.event_id)
 
                 try:
+                    reposted_bool = False
+
                     # Hash image
                     image_hash = imagehash.phash(
                         Image.open(f"./data/{filename}"))
@@ -174,6 +179,7 @@ class Callbacks(object):
 
                     # Delete image
                     os.remove(f"./data/{filename}")
+
                     print(f"event_id: {event.event_id[1:]}")
 
                     # Check if image is a repost within the last 30 days
@@ -204,7 +210,7 @@ class Callbacks(object):
                     await db.update_event_info(database, event.event_id,
                                                event.source["sender"])
                 except Exception as e:
-                    print(f"Exception while while in hash process: {e}")
+                    print(f"Exception while in hash process: {e}")
                 # Send reactions
                 await send_reactions_to_message(self.client, room.room_id,
                                                 event.event_id, reposted_bool)
