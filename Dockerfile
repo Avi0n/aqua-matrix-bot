@@ -3,17 +3,6 @@
 #
 #    docker build -f docker/Dockerfile .
 #
-# There is an optional PYTHON_VERSION build argument which sets the
-# version of python to build against. For example:
-#
-#    docker build -f docker/Dockerfile --build-arg PYTHON_VERSION=3.8 .
-#
-#
-# And an optional LIBOLM_VERSION build argument which sets the
-# version of libolm to build against. For example:
-#
-#    docker build -f docker/Dockerfile --build-arg LIBOLM_VERSION=3.1.4 .
-#
 
 ##
 ## Creating a builder container
@@ -22,8 +11,7 @@
 # We use an initial docker container to build all of the runtime dependencies,
 # then transfer those dependencies to the container we're going to ship,
 # before throwing this one away
-#ARG PYTHON_VERSION=3.8
-#FROM docker.io/python:${PYTHON_VERSION}-alpine3.11 as builder
+
 FROM ubuntu:20.04 AS build-image
 ARG DEBIAN_FRONTEND=noninteractive
 
