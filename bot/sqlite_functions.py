@@ -165,7 +165,7 @@ async def get_user_karma(database):
 
         # Add each user and karma as its own row
         for row in results:
-            username = row[0]
+            username = f"_{row[0][1:]}"
             karma_points = row[1]
             return_message += username + (
                 " " * (longest_username_length - len(username))) + "   " + (
