@@ -165,7 +165,12 @@ async def get_user_karma(database):
 
         # Add each user and karma as its own row
         for row in results:
-            username = f"_{row[0][1:]}"
+            username = row[0][1:].split(":")[0]
+            # Split name to insert zero width space later to avoid pinging user
+            first_half  = username[:len(username)//2]
+            second_half = username[len(username)//2:]
+            # Insert zero width space in between first_half and second_half
+            username = f"{first_half}​{second_half}"
             karma_points = row[1]
             return_message += username + (
                 " " * (longest_username_length - len(username))) + "   " + (
