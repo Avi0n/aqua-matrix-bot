@@ -72,7 +72,7 @@ class Callbacks(object):
                         database,
                         event.source["content"]["m.relates_to"]["event_id"])
 
-                    if og_sender is not None:  #and og_sender != event.sender:
+                    if og_sender is not None and og_sender != event.sender:
                         # Add reaction info to table (in case we need to retract points later)
                         await db.update_reaction_info(database, event.event_id,
                                                       event.sender, points)
