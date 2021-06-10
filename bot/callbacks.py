@@ -72,7 +72,7 @@ class Callbacks(object):
                         database,
                         event.source["content"]["m.relates_to"]["event_id"])
 
-                    if og_sender is not None and og_sender != event.sender:
+                    if og_sender is not None:  #and og_sender != event.sender:
                         # Add reaction info to table (in case we need to retract points later)
                         await db.update_reaction_info(database, event.event_id,
                                                       event.sender, points)
@@ -221,12 +221,17 @@ class Callbacks(object):
         try:
             if event.source["type"] == "m.room.redaction":
                 result = await db.get_reaction_info(database, event.redacts)
-
+                print(f"result: {result}")
                 # result might be None if user is deleting an image/message
-                # Need to also delete has for message id if it's an image
-                # if result is not None:
-                # Subtract points that were redacted
-                await db.update_user_karma(database, result[0], "-", result[1])
+                if result is not None:
+                    # Subtract points that were redacted
+                    await db.update_user_karma(database, result[0], "-",
+                                               result[1])
+                    text = (f"{result[1]} subtracted from {result[0]}")
+                    await send_text_to_room(self.client, room.room_id, text)
+
+                # Delete hash for message id if it's an image
+                await db.delete_hash(database, event.redacts)
         except Exception as e:
             print(f"Exception in redaction func: {e}")
 

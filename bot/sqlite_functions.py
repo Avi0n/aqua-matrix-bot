@@ -305,7 +305,26 @@ async def update_reaction_info(database, event_id, username, points):
     await db.close()
 
 
-# Get reaction_info
+# Delete reaction_info row
+async def delete_reaction_info(database, event_id):
+    db = await aiosqlite.connect("db/" + database + ".db")
+    # Delete row with specified event_id
+    sql = f"DELETE FROM reaction_info WHERE event_id = '{event_id}';"
+    print(sql)
+    cursor = await db.cursor()
+
+    try:
+        # Execute the SQL command
+        await cursor.execute(sql)
+        # Commit your changes in the database
+        await db.commit()
+    except Exception as e:
+        # Rollback in case there is any error
+        await db.rollback()
+        print("Error in delete_reaction_info: " + str(e))
+
+
+# Find username and points from specified event_id
 async def get_reaction_info(database, event_id):
     db = await aiosqlite.connect("db/" + database + ".db")
     sql = "SELECT username, points FROM reaction_info WHERE event_id = '" + event_id + "';"
@@ -469,7 +488,8 @@ async def addme_async(chat_type, username, room_id):
 async def store_hash(database, event_id, media_hash):
     db = await aiosqlite.connect("db/" + database + ".db")
     # Add event_id, photo's hash, and current date to database
-    sql = "INSERT INTO media_hash VALUES ('" + event_id + "','" + media_hash + "', + date('now'));"
+    #sql = "INSERT INTO media_hash VALUES ('" + event_id + "','" + media_hash + "', + date('now'));"
+    sql = f"INSERT INTO media_hash VALUES ('{event_id}', '{media_hash}', date('now'));"
     print(sql)
     cursor = await db.cursor()
 
@@ -500,11 +520,30 @@ async def store_hash(database, event_id, media_hash):
     # await db.close()
 
 
+# Delete hash with specific event_id
+async def delete_hash(database, event_id):
+    db = await aiosqlite.connect("db/" + database + ".db")
+    # Delete row with specified event_id
+    sql = f"DELETE FROM media_hash WHERE event_id = '{event_id}';"
+    print(sql)
+    cursor = await db.cursor()
+
+    try:
+        # Execute the SQL command
+        await cursor.execute(sql)
+        # Commit your changes in the database
+        await db.commit()
+    except Exception as e:
+        # Rollback in case there is any error
+        await db.rollback()
+        print("Error in delete_hash: " + str(e))
+
+
 # Fetch hash of event_id
 async def fetch_one_hash(event_id, database):
     db = await aiosqlite.connect("db/" + database + ".db")
     # Fetch a specific event_id's associated hash
-    sql = "SELECT hash FROM media_hash WHERE event_id = " + str(event_id) + ";"
+    sql = f"SELECT hash FROM media_hash WHERE event_id = '{event_id}';"
     cursor = await db.cursor()
 
     try:
