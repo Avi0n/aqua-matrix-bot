@@ -75,7 +75,7 @@ class Callbacks(object):
                     if og_sender is not None and og_sender != event.sender:
                         # Add reaction info to table (in case we need to retract points later)
                         await db.update_reaction_info(database, event.event_id,
-                                                      event.sender, points)
+                                                      og_sender, points)
                         # Update media poster's points
                         await db.update_user_karma(database, og_sender, "+",
                                                    points)
