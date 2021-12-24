@@ -12,7 +12,8 @@
 # then transfer those dependencies to the container we're going to ship,
 # before throwing this one away
 
-FROM ubuntu:20.04 AS build-image
+# FROM ubuntu:20.04 AS build-image
+FROM python:3.9-bullseye AS build-image
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
@@ -45,7 +46,7 @@ RUN pip3 install --upgrade pip && pip3 install setuptools wheel && pip3 install 
 
 # Create the container we'll actually ship. We need to copy libolm and any
 # python dependencies that we built above to this container
-FROM ubuntu:20.04
+FROM python:3.9-slim
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y python3-venv libolm-dev

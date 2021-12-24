@@ -227,8 +227,8 @@ class Callbacks(object):
                     # Subtract points that were redacted
                     await db.update_user_karma(database, result[0], "-",
                                                result[1])
-                    text = (f"{result[1]} subtracted from {result[0]}")
-                    await send_text_to_room(self.client, room.room_id, text)
+                    #text = (f"{result[1]} subtracted from {result[0]}")
+                    #await send_text_to_room(self.client, room.room_id, text)
 
                 # Delete hash for message id if it's an image
                 await db.delete_hash(database, event.redacts)

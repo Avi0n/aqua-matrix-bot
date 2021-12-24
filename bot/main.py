@@ -104,8 +104,22 @@ async def main():
 
             # Sleep so we don't bombard the server with login requests
             sleep(15)
+
+        except asyncio.TimeoutError:
+            # Syncing with the homeserver may time out occasionally if:
+            #   1. There are no new events to sync in the timeout period.
+            #   2. The server is taking a long time to respond to the request
+            #  In both of these cases, let's just try again.
+            logger.warning("Timed out while syncing with homeserver, retrying in 15s...")
+            sleep(15)
+
+        except AttributeError:
+            logger.warning("AttributeError, retrying in 15s...")
+            sleep(15)
+
         finally:
             # Make sure to close the client connection on disconnect
             await client.close()
+
 
 asyncio.get_event_loop().run_until_complete(main())
