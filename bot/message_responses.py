@@ -86,7 +86,8 @@ class ProcessMedia(object):
                 elif reaction == ":red_heart:":
                     points = 3
                 elif reaction == "Source":
-                    source(self.event.event_id)
+                    await self.source(self.event.event_id)
+                    return
                 else:
                     print("Not a recognized emoji")
 
@@ -267,11 +268,50 @@ class ProcessMedia(object):
     async def source(self, event_id):
         # Get media's file_id
         try:
-            media_id = self.event_id
+            media_id = event_id
         except Exception as e:
             print(f'Exception in source(): {e}')
 
         if media_id is not None:
+            # See if it's E2EE
+            try:
+                if "key_ops" in str(self.event.source):
+                    encrypted_image = True
+                    print(f"encrypted_image={encrypted_image}")
+                else:
+                    encrypted_image = False
+                    print(f"encrypted_image={encrypted_image}")
+            except Exception as e:
+                print(f"Exception while checking for E2EE key: {e}")
+
+            # See if there's a thumbnail URL
+            try:
+                thumbnail = None
+                if "thumbnail" in str(self.event.source) and thumbnail is None:
+                    thumbnail = True
+                    if encrypted_image is False:
+                        image_url = self.event.source["content"]["info"][
+                            "thumbnail_url"]
+                    elif encrypted_image is True:
+                        image_url = self.event.source["content"]["info"][
+                            "thumbnail_file"]["url"]
+                else:
+                    thumbnail = False
+                    if encrypted_image is False:
+                        image_url = self.event.source["content"]["url"]
+                    elif encrypted_image is True:
+                        image_url = self.event.source["content"]["file"]["url"]
+            except Exception as e:
+                print(f"Exception while trying to assign file URL: {e}")
+
+            try:
+                parsed_url = urlparse(image_url)
+                print(f"parsed_url: {parsed_url}")
+            except Exception as e:
+                print(
+                    f"Exception while trying to assign E2EE thumbnail: {e}"
+                )
+
             try:
                 # Download image data
                 media_data = await self.client.download(
