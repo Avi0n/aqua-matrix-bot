@@ -11,6 +11,8 @@ from PIL import Image
 import emoji
 import os
 import json
+from saucenao import get_image_source, get_source
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,6 +84,8 @@ class ProcessMedia(object):
                     points = 2
                 elif reaction == ":red_heart:":
                     points = 3
+                elif reaction == "Source":
+                    source(self.event.event_id)
                 else:
                     print("Not a recognized emoji")
 
@@ -257,3 +261,73 @@ class ProcessMedia(object):
                 await db.delete_hash(database, self.event.redacts)
         except Exception as e:
             print(f"Exception in redaction func: {e}")
+
+
+    async def source(self, event_id):
+        # Get media's file_id
+        try:
+            media_id = self.event_id
+        except Exception as e:
+            print(f'Exception in source(): {e}')
+
+        if media_id is not None:
+            try:
+                # Download image data
+                media_data = await self.client.download(
+                    parsed_url.netloc, parsed_url.path.strip("/"))
+                filename = self.event.body
+
+                # Write image data to file
+                if encrypted_image is False:
+                    async with aiofiles.open(f"./data/{filename}",
+                                                "wb") as f:
+                        await f.write(media_data.body)
+                elif encrypted_image is True:
+                    if thumbnail is True:
+                        async with aiofiles.open(f"./data/{filename}",
+                                                    "wb") as f:
+                            await f.write(
+                                crypto.attachments.decrypt_attachment(
+                                    media_data.body,
+                                    self.event.source["content"]["info"]
+                                    ["thumbnail_file"]["key"]["k"],
+                                    self.event.source["content"]["info"]
+                                    ["thumbnail_file"]["hashes"]["sha256"],
+                                    self.event.source["content"]["info"]
+                                    ["thumbnail_file"]["iv"],
+                                ))
+                    else:
+                        async with aiofiles.open(f"./data/{filename}",
+                                                    "wb") as f:
+                            await f.write(
+                                crypto.attachments.decrypt_attachment(
+                                    media_data.body,
+                                    self.event.source["content"]["file"]["key"]
+                                    ["k"],
+                                    self.event.source["content"]["file"]
+                                    ["hashes"]["sha256"],
+                                    self.event.source["content"]["file"]["iv"],
+                                ))
+            except Exception as e:
+                print(f"Exception while downloading image data: {e}")
+
+            # Send source URL
+            text = get_source(filename)
+            await send_text_to_room(self.client, self.room.room_id, text, event_id)
+
+            """
+            # await add_to_queue(room.room_id, self.event.event_id)
+            # If it's an mp4, convert it to gif
+            if filename.endswith(".mp4"):
+                convert_media(filename, TargetFormat.GIF)
+                os.remove(filename)
+                filename = "./media/source.gif"
+
+            context.bot.send_message(chat_id=update.message.chat_id,
+                                    text=get_source(file_name),
+                                    parse_mode='Markdown',
+                                    disable_web_page_preview=True)
+            """
+
+            # Cleanup downloaded media
+            delete_media(media_name=filename)
