@@ -42,7 +42,7 @@ async def send_text_to_room(
         content["formatted_body"] = markdown(message)
 
     try:
-        await client.room_send(
+        return await client.room_send(
             room_id, "m.room.message", content, ignore_unverified_devices=True,
         )
     except SendRetryError:
@@ -52,14 +52,19 @@ async def send_text_to_room(
 # Used to be rate_limit=3
 throttler = Throttler(rate_limit=3, period=40)
 async def send_reactions_to_message(client, room_id, event_id, repost):
+    print(client)
+    print(room_id)
+    print(event_id)
+    print(repost)
     async with throttler:
         if repost is False:
             emoji_list = ["👍", "👌", "❤"]
         elif repost is True:
             #emoji_list = ["Repost", "👍", "👌", "❤"]
             emoji_list = ["Repost", "\ud83d\udc4d", "\ud83d\udc4c", "\u2764"]
+
         for x in emoji_list:
-            time.sleep(1)
+            time.sleep(0.5)
             content = {
                 "m.relates_to": {
                     "rel_type": "m.annotation",
@@ -74,4 +79,3 @@ async def send_reactions_to_message(client, room_id, event_id, repost):
                 )
             except Exception as e:  # SendRetryError:
                 print(f"send_reaction_to_message() exception: {e}")
-                logger.exception(f"Unable to send reaction response to {room_id}")
