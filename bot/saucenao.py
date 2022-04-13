@@ -1,16 +1,20 @@
 # The following script is mostly a copy and paste from https://saucenao.com/tools/examples/api/identify_images_v1.1.py
-import sys
-import os
+import codecs
 import io
+import json
+import os
+import re
+import sys
+import time
 import unicodedata
+from collections import OrderedDict
+from random import randint
+
 import requests
 from PIL import Image
-import json
-import codecs
-import re
-import time
-from random import randint
-from collections import OrderedDict
+
+from config import Config
+
 sys.stdout = codecs.getwriter('utf8')(sys.stdout.detach())
 sys.stderr = codecs.getwriter('utf8')(sys.stderr.detach())
 
