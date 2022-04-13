@@ -15,10 +15,20 @@ sys.stdout = codecs.getwriter('utf8')(sys.stdout.detach())
 sys.stderr = codecs.getwriter('utf8')(sys.stderr.detach())
 from dotenv import load_dotenv
 
+# Read config file
+# A different config file path can be specified as the first command line argument
+if len(sys.argv) > 1:
+    config_filepath = sys.argv[1]
+else:
+    config_filepath = "config.yaml"
+config = Config(config_filepath)
+
+# Configure the database
+store = Storage(config.database_filepath)
 
 # Search for source from SauceNao and return string i.e. "This might be it: URL"
 def get_source(file_name):
-    api_key = os.getenv("SAUCE_NAO_TOKEN")
+    api_key = config.saucenaotoken
     #EnableRename = False
     minsim = '68!'
 
@@ -275,7 +285,7 @@ def get_source(file_name):
 
 # Search for source from SauceNao and return Pixiv URL
 def get_image_source(file_name):
-    api_key = os.getenv("SAUCE_NAO_TOKEN")
+    api_key = config.saucenaotoken
     #EnableRename = False
     minsim = '68!'
 
