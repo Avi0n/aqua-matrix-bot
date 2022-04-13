@@ -86,7 +86,85 @@ class ProcessMedia(object):
                 elif reaction == ":red_heart:":
                     points = 3
                 elif reaction == "Source":
-                    await self.source(self.event.event_id)
+                    # See if it's E2EE
+                    try:
+                        if "key_ops" in str(self.event.source):
+                            encrypted_image = True
+                            print(f"encrypted_image={encrypted_image}")
+                        else:
+                            encrypted_image = False
+                            print(f"encrypted_image={encrypted_image}")
+                    except Exception as e:
+                        print(f"Exception while checking for E2EE key: {e}")
+
+                    # See if there's a thumbnail URL
+                    try:
+                        thumbnail = None
+                        if "thumbnail" in str(self.event.source) and thumbnail is None:
+                            thumbnail = True
+                            if encrypted_image is False:
+                                image_url = self.event.source["content"]["info"][
+                                    "thumbnail_url"]
+                            elif encrypted_image is True:
+                                image_url = self.event.source["content"]["info"][
+                                    "thumbnail_file"]["url"]
+                        else:
+                            thumbnail = False
+                            if encrypted_image is False:
+                                image_url = self.event.source["content"]["url"]
+                            elif encrypted_image is True:
+                                image_url = self.event.source["content"]["file"]["url"]
+                    except Exception as e:
+                        print(f"Exception while trying to assign file URL: {e}")
+                    try:
+                        parsed_url = urlparse(image_url)
+                        print(f"parsed_url: {parsed_url}")
+                    except Exception as e:
+                        print(
+                            f"Exception while trying to assign E2EE thumbnail: {e}"
+                        )
+
+                    try:
+                        # Download image data
+                        media_data = await self.client.download(
+                            parsed_url.netloc, parsed_url.path.strip("/"))
+                        filename = self.event.body
+
+                        # Write image data to file
+                        if encrypted_image is False:
+                            async with aiofiles.open(f"./data/{filename}",
+                                                    "wb") as f:
+                                await f.write(media_data.body)
+                        elif encrypted_image is True:
+                            if thumbnail is True:
+                                async with aiofiles.open(f"./data/{filename}",
+                                                        "wb") as f:
+                                    await f.write(
+                                        crypto.attachments.decrypt_attachment(
+                                            media_data.body,
+                                            self.event.source["content"]["info"]
+                                            ["thumbnail_file"]["key"]["k"],
+                                            self.event.source["content"]["info"]
+                                            ["thumbnail_file"]["hashes"]["sha256"],
+                                            self.event.source["content"]["info"]
+                                            ["thumbnail_file"]["iv"],
+                                        ))
+                            else:
+                                async with aiofiles.open(f"./data/{filename}",
+                                                        "wb") as f:
+                                    await f.write(
+                                        crypto.attachments.decrypt_attachment(
+                                            media_data.body,
+                                            self.event.source["content"]["file"]["key"]
+                                            ["k"],
+                                            self.event.source["content"]["file"]
+                                            ["hashes"]["sha256"],
+                                            self.event.source["content"]["file"]["iv"],
+                                        ))
+                    except Exception as e:
+                        print(f"Exception while downloading image data: {e}")
+                    # Reply to message with source URL
+                    await self.source(filename, self.event.source["content"]["m.relates_to"]["event_id"])
                     return
                 else:
                     print("Not a recognized emoji")
@@ -265,110 +343,25 @@ class ProcessMedia(object):
             print(f"Exception in redaction func: {e}")
 
 
-    async def source(self, event_id):
-        # Get media's file_id
-        try:
-            media_id = event_id
-        except Exception as e:
-            print(f'Exception in source(): {e}')
+    async def source(self, filename, event_id):
+        # Send source URL
+        text = get_source(filename)
+        await send_text_to_room(self.client, self.room.room_id, text, event_id)
 
-        if media_id is not None:
-            # See if it's E2EE
-            try:
-                if "key_ops" in str(self.event.source):
-                    encrypted_image = True
-                    print(f"encrypted_image={encrypted_image}")
-                else:
-                    encrypted_image = False
-                    print(f"encrypted_image={encrypted_image}")
-            except Exception as e:
-                print(f"Exception while checking for E2EE key: {e}")
+        """
+        # await add_to_queue(room.room_id, self.event.event_id)
+        # If it's an mp4, convert it to gif
+        if filename.endswith(".mp4"):
+            convert_media(filename, TargetFormat.GIF)
+            os.remove(filename)
+            filename = "./media/source.gif"
 
-            # See if there's a thumbnail URL
-            try:
-                thumbnail = None
-                if "thumbnail" in str(self.event.source) and thumbnail is None:
-                    thumbnail = True
-                    if encrypted_image is False:
-                        image_url = self.event.source["content"]["info"][
-                            "thumbnail_url"]
-                    elif encrypted_image is True:
-                        image_url = self.event.source["content"]["info"][
-                            "thumbnail_file"]["url"]
-                else:
-                    thumbnail = False
-                    if encrypted_image is False:
-                        image_url = self.event.source["content"]["url"]
-                    elif encrypted_image is True:
-                        image_url = self.event.source["content"]["file"]["url"]
-            except Exception as e:
-                print(f"Exception while trying to assign file URL: {e}")
+        context.bot.send_message(chat_id=update.message.chat_id,
+                                text=get_source(file_name),
+                                parse_mode='Markdown',
+                                disable_web_page_preview=True)
 
-            try:
-                parsed_url = urlparse(image_url)
-                print(f"parsed_url: {parsed_url}")
-            except Exception as e:
-                print(
-                    f"Exception while trying to assign E2EE thumbnail: {e}"
-                )
 
-            try:
-                # Download image data
-                media_data = await self.client.download(
-                    parsed_url.netloc, parsed_url.path.strip("/"))
-                filename = self.event.body
-
-                # Write image data to file
-                if encrypted_image is False:
-                    async with aiofiles.open(f"./data/{filename}",
-                                                "wb") as f:
-                        await f.write(media_data.body)
-                elif encrypted_image is True:
-                    if thumbnail is True:
-                        async with aiofiles.open(f"./data/{filename}",
-                                                    "wb") as f:
-                            await f.write(
-                                crypto.attachments.decrypt_attachment(
-                                    media_data.body,
-                                    self.event.source["content"]["info"]
-                                    ["thumbnail_file"]["key"]["k"],
-                                    self.event.source["content"]["info"]
-                                    ["thumbnail_file"]["hashes"]["sha256"],
-                                    self.event.source["content"]["info"]
-                                    ["thumbnail_file"]["iv"],
-                                ))
-                    else:
-                        async with aiofiles.open(f"./data/{filename}",
-                                                    "wb") as f:
-                            await f.write(
-                                crypto.attachments.decrypt_attachment(
-                                    media_data.body,
-                                    self.event.source["content"]["file"]["key"]
-                                    ["k"],
-                                    self.event.source["content"]["file"]
-                                    ["hashes"]["sha256"],
-                                    self.event.source["content"]["file"]["iv"],
-                                ))
-            except Exception as e:
-                print(f"Exception while downloading image data: {e}")
-
-            # Send source URL
-            text = get_source(filename)
-            await send_text_to_room(self.client, self.room.room_id, text, event_id)
-
-            """
-            # await add_to_queue(room.room_id, self.event.event_id)
-            # If it's an mp4, convert it to gif
-            if filename.endswith(".mp4"):
-                convert_media(filename, TargetFormat.GIF)
-                os.remove(filename)
-                filename = "./media/source.gif"
-
-            context.bot.send_message(chat_id=update.message.chat_id,
-                                    text=get_source(file_name),
-                                    parse_mode='Markdown',
-                                    disable_web_page_preview=True)
-            """
-
-            # Cleanup downloaded media
-            delete_media(media_name=filename)
+        # Cleanup downloaded media
+        delete_media(media_name=filename)
+        """
