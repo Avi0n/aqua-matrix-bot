@@ -109,6 +109,7 @@ class ProcessMedia(object):
                 await send_reactions_to_message(self.client, self.room.room_id,
                                                 self.event.event_id, False)
             elif msgtype == "m.image":
+                """
                 # See if it's E2EE
                 try:
                     if "key_ops" in str(self.event.source):
@@ -230,6 +231,9 @@ class ProcessMedia(object):
                                                self.event.source["sender"])
                 except Exception as e:
                     print(f"Exception while in hash process: {e}")
+                
+                """
+                reposted_bool = False
                 # Send reactions
                 await send_reactions_to_message(self.client, self.room.room_id,
                                                 self.event.event_id, reposted_bool)
