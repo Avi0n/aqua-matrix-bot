@@ -13,7 +13,6 @@ from random import randint
 from collections import OrderedDict
 sys.stdout = codecs.getwriter('utf8')(sys.stdout.detach())
 sys.stderr = codecs.getwriter('utf8')(sys.stderr.detach())
-from dotenv import load_dotenv
 
 # Read config file
 # A different config file path can be specified as the first command line argument
