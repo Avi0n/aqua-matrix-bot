@@ -26,8 +26,6 @@ else:
     config_filepath = "config.yaml"
 config = Config(config_filepath)
 
-# Configure the database
-store = Storage(config.database_filepath)
 
 # Search for source from SauceNao and return string i.e. "This might be it: URL"
 def get_source(file_name):
