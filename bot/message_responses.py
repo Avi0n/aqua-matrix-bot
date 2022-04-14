@@ -99,20 +99,16 @@ class ProcessMedia(object):
 
                     parent_event_id = self.event.source["content"]["m.relates_to"]["event_id"]
                     print(f'parent_event_id: {parent_event_id}')
-                    parent_event_info = await self.client.room_get_event(self.room, parent_event_id)
+                    parent_event_info = await self.client.room_get_event(self.room.room_id, parent_event_id)
                     print(f'parent_event_info: {parent_event_info}')
-                    try:
-                        print(f'event.source: {parent_event_info.source}')
-                    except Exception as e:
-                        print(f'Exception1: {e}')
                     try:
                         print(f'event.source: {parent_event_info.event.source}')
                     except Exception as e:
                         print(f'Exception2: {e}')
-                    return
+
                     # See if it's E2EE
                     try:
-                        if "key_ops" in str(self.event.source):
+                        if "key_ops" in str(parent_event_info.event.source):
                             encrypted_image = True
                             print(f"encrypted_image={encrypted_image}")
                         else:
@@ -124,20 +120,20 @@ class ProcessMedia(object):
                     # See if there's a thumbnail URL
                     try:
                         thumbnail = None
-                        if "thumbnail" in str(self.event.source) and thumbnail is None:
+                        if "thumbnail" in str(parent_event_info.event.source) and thumbnail is None:
                             thumbnail = True
                             if encrypted_image is False:
-                                image_url = self.event.source["content"]["info"][
+                                image_url = parent_event_info.event.source["content"]["info"][
                                     "thumbnail_url"]
                             elif encrypted_image is True:
-                                image_url = self.event.source["content"]["info"][
+                                image_url = parent_event_info.event.source["content"]["info"][
                                     "thumbnail_file"]["url"]
                         else:
                             thumbnail = False
                             if encrypted_image is False:
-                                image_url = self.event.source["content"]["url"]
+                                image_url = parent_event_info.event.source["content"]["url"]
                             elif encrypted_image is True:
-                                image_url = self.event.source["content"]["file"]["url"]
+                                image_url = parent_event_info.event.source["content"]["file"]["url"]
                     except Exception as e:
                         print(f"Exception while trying to assign file URL: {e}")
                     try:
@@ -153,6 +149,7 @@ class ProcessMedia(object):
                         media_data = await self.client.download(
                             parsed_url.netloc, parsed_url.path.strip("/"))
                         filename = self.event.body
+                        print(f'filename: {filename}')
 
                         # Write image data to file
                         if encrypted_image is False:
@@ -166,11 +163,11 @@ class ProcessMedia(object):
                                     await f.write(
                                         crypto.attachments.decrypt_attachment(
                                             media_data.body,
-                                            self.event.source["content"]["info"]
+                                            parent_event_info.event.source["content"]["info"]
                                             ["thumbnail_file"]["key"]["k"],
-                                            self.event.source["content"]["info"]
+                                            parent_event_info.event.source["content"]["info"]
                                             ["thumbnail_file"]["hashes"]["sha256"],
-                                            self.event.source["content"]["info"]
+                                            parent_event_info.event.source["content"]["info"]
                                             ["thumbnail_file"]["iv"],
                                         ))
                             else:
@@ -179,11 +176,11 @@ class ProcessMedia(object):
                                     await f.write(
                                         crypto.attachments.decrypt_attachment(
                                             media_data.body,
-                                            self.event.source["content"]["file"]["key"]
+                                            parent_event_info.event.source["content"]["file"]["key"]
                                             ["k"],
-                                            self.event.source["content"]["file"]
+                                            parent_event_info.event.source["content"]["file"]
                                             ["hashes"]["sha256"],
-                                            self.event.source["content"]["file"]["iv"],
+                                            parent_event_info.event.source["content"]["file"]["iv"],
                                         ))
                     except Exception as e:
                         print(f"Exception while downloading image data: {e}")
