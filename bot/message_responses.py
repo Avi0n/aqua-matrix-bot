@@ -148,7 +148,7 @@ class ProcessMedia(object):
                         # Download image data
                         media_data = await self.client.download(
                             parsed_url.netloc, parsed_url.path.strip("/"))
-                        filename = parent_event_info.content.body
+                        filename = parent_event_info.event.body
                         print(f'filename: {filename}')
 
                         # Write image data to file
