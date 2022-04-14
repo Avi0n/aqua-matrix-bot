@@ -1,5 +1,5 @@
+import asyncio
 import logging
-from time import sleep
 from typing import Optional, Union
 
 from asyncio_throttle import Throttler
