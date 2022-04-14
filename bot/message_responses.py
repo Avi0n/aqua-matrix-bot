@@ -65,10 +65,8 @@ class ProcessMedia(object):
 
 
     async def process_media(self):
-        if self.event.sender != self.config.user_id:
-            print(json.dumps(self.event.source, indent=4))
-        #print(room.room_id)
-        #print(json.dumps(room.source, indent=4))
+        #if self.event.sender != self.config.user_id:
+        #    print(json.dumps(self.event.source, indent=4))
     
         database = self.room.room_id[1:].replace(":", "_")
 
@@ -99,13 +97,7 @@ class ProcessMedia(object):
                     """
 
                     parent_event_id = self.event.source["content"]["m.relates_to"]["event_id"]
-                    print(f'parent_event_id: {parent_event_id}')
                     parent_event_info = await self.client.room_get_event(self.room.room_id, parent_event_id)
-                    print(f'parent_event_info: {parent_event_info}')
-                    try:
-                        print(f'event.source: {parent_event_info.event.source}')
-                    except Exception as e:
-                        print(f'Exception2: {e}')
 
                     # See if it's E2EE
                     try:
@@ -139,7 +131,6 @@ class ProcessMedia(object):
                         print(f"Exception while trying to assign file URL: {e}")
                     try:
                         parsed_url = urlparse(image_url)
-                        print(f"parsed_url: {parsed_url}")
                     except Exception as e:
                         print(
                             f"Exception while trying to assign E2EE thumbnail: {e}"
@@ -246,7 +237,6 @@ class ProcessMedia(object):
                     print(f"Exception while trying to assign file URL: {e}")
                 try:
                     parsed_url = urlparse(image_url)
-                    print(f"parsed_url: {parsed_url}")
                 except Exception as e:
                     print(
                         f"Exception while trying to assign E2EE thumbnail: {e}"
@@ -346,14 +336,12 @@ class ProcessMedia(object):
         try:
             if self.event.source["type"] == "m.room.redaction":
                 result = await db.get_reaction_info(database, self.event.redacts)
-                print(f"result: {result}")
+
                 # result might be None if user is deleting an image/message
                 if result is not None:
                     # Subtract points that were redacted
                     await db.update_user_karma(database, result[0], "-",
                                                result[1])
-                    #text = (f"{result[1]} subtracted from {result[0]}")
-                    #await send_text_to_room(self.client, room.room_id, text)
 
                 # Delete hash for message id if it's an image
                 await db.delete_hash(database, self.event.redacts)
@@ -363,9 +351,14 @@ class ProcessMedia(object):
 
     async def source(self, filename, event_id):
         # Send source URL
-        text = get_source(filename, self.saucenao_token)
-        await send_text_to_room(self.client, self.room.room_id, text, False, True, event_id)
+        try:
+            text = get_source(filename, self.saucenao_token)
+            await send_text_to_room(self.client, self.room.room_id, text, False, True, event_id)
+        except Exception as e:
+            print(f'Exception in source(): {e}')
 
+        # Delete image
+        os.remove(f"./data/{filename}")
 
         """
         # await add_to_queue(room.room_id, self.event.event_id)
@@ -374,13 +367,4 @@ class ProcessMedia(object):
             convert_media(filename, TargetFormat.GIF)
             os.remove(filename)
             filename = "./media/source.gif"
-
-        context.bot.send_message(chat_id=update.message.chat_id,
-                                text=get_source(file_name),
-                                parse_mode='Markdown',
-                                disable_web_page_preview=True)
-
-
-        # Cleanup downloaded media
-        delete_media(media_name=filename)
         """
