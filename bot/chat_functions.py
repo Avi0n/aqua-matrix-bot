@@ -1,19 +1,12 @@
-from asyncio_throttle import Throttler
-from emoji import emojize
-
 import logging
+from time import sleep
 from typing import Optional, Union
 
+from asyncio_throttle import Throttler
+from emoji import emojize
 from markdown import markdown
-from nio import (
-    AsyncClient,
-    ErrorResponse,
-    MatrixRoom,
-    MegolmEvent,
-    Response,
-    RoomSendResponse,
-    SendRetryError,
-)
+from nio import (AsyncClient, ErrorResponse, MatrixRoom, MegolmEvent, Response,
+                 RoomSendResponse, SendRetryError)
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +136,7 @@ async def send_reactions_to_message(client, room_id, event_id, repost):
         emoji_list = ["Repost", "\ud83d\udc4d", "\ud83d\udc4c", "\u2764"]
 
     for x in emoji_list:
-        time.sleep(0.5)
+        sleep(0.5)
         content = {
             "m.relates_to": {
                 "rel_type": "m.annotation",

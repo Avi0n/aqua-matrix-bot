@@ -86,6 +86,30 @@ class ProcessMedia(object):
                 elif reaction == ":red_heart:":
                     points = 3
                 elif reaction == "Source":
+                    """
+                    Need to figure out a way to get the associated URL to download the original image.
+                    Can't just use event_id because that's the event_id for the reaction.
+                    """
+                    """
+                    async def room_get_event(
+                        self,
+                        room_id: str,
+                        event_id: str)
+                    """
+
+                    parent_event_id = self.event.source["content"]["m.relates_to"]["event_id"]
+                    print(f'parent_event_id: {parent_event_id}')
+                    parent_event_info = await self.client.room_get_event(self.room, parent_event_id)
+                    print(f'parent_event_info: {parent_event_info}')
+                    try:
+                        print(f'event.source: {parent_event_info.source}')
+                    except Exception as e:
+                        print(f'Exception1: {e}')
+                    try:
+                        print(f'event.source: {parent_event_info.event.source}')
+                    except Exception as e:
+                        print(f'Exception2: {e}')
+                    return
                     # See if it's E2EE
                     try:
                         if "key_ops" in str(self.event.source):
