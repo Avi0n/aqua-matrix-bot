@@ -86,8 +86,7 @@ def get_source(file_name, token):
     fname = file_name
     for ext in extensions:
         if fname.lower().endswith(ext):
-            print(fname)
-            image = Image.open(fname)
+            image = Image.open(f"./data/{fname}")
             image = image.convert('RGB')
             image.thumbnail(thumbSize, resample=Image.ANTIALIAS)
             imageData = io.BytesIO()
@@ -345,7 +344,7 @@ def get_image_source(file_name):
     for ext in extensions:
         if fname.lower().endswith(ext):
             #print(fname)
-            image = Image.open(fname)
+            image = Image.open(f"./data/{fname}")
             image = image.convert('RGB')
             image.thumbnail(thumbSize, resample=Image.ANTIALIAS)
             imageData = io.BytesIO()
