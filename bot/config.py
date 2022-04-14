@@ -64,6 +64,8 @@ class Config(object):
 
         self.command_prefix = self._get_cfg(["command_prefix"], default="!c") + " "
 
+        self.saucenao_token = self._get_cfg(["saucenao_token"]) + " "
+
     def _get_cfg(
             self,
             path: List[str],

@@ -61,7 +61,7 @@ class ProcessMedia(object):
         self.config = config
         self.room = room
         self.event = event
-        self.saucenaotoken = config.saucenaotoken
+        self.saucenao_token = config.saucenao_token
 
 
     async def process_media(self):
@@ -366,7 +366,7 @@ class ProcessMedia(object):
 
     async def source(self, filename, event_id):
         # Send source URL
-        text = get_source(filename, self.saucenaotoken)
+        text = get_source(filename, self.saucenao_token)
         await send_text_to_room(self.client, self.room.room_id, text, event_id)
 
         """
