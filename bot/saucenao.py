@@ -250,8 +250,7 @@ def get_source(file_name, token):
                             return "This _might_ be it: [Sauce](" + result_url + ")" + \
                                 "\nSimilarity: " + pic_similarity
                         else:
-                            return "[Sauce](" + result_url + ")" + "\nSimilarity: " + \
-                                pic_similarity
+                            return f"[Sauce]({result_url})<br>  \nSimilarity: {pic_similarity}"
                     else:
                         print('miss...')
                         return "I couldn't find a source for that"

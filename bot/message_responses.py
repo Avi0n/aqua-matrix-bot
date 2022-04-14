@@ -185,7 +185,7 @@ class ProcessMedia(object):
                     except Exception as e:
                         print(f"Exception while downloading image data: {e}")
                     # Reply to message with source URL
-                    await self.source(filename, self.event.source["content"]["m.relates_to"]["event_id"])
+                    await self.source(filename, parent_event_id)
                     return
                 else:
                     print("Not a recognized emoji")
@@ -367,7 +367,8 @@ class ProcessMedia(object):
     async def source(self, filename, event_id):
         # Send source URL
         text = get_source(filename, self.saucenao_token)
-        await send_text_to_room(self.client, self.room.room_id, text, event_id)
+        await send_text_to_room(self.client, self.room.room_id, text, False, True, event_id)
+
 
         """
         # await add_to_queue(room.room_id, self.event.event_id)
