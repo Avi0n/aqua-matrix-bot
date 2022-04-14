@@ -61,6 +61,7 @@ class ProcessMedia(object):
         self.config = config
         self.room = room
         self.event = event
+        self.saucenaotoken = config.saucenaotoken
 
 
     async def process_media(self):
@@ -149,7 +150,6 @@ class ProcessMedia(object):
                         media_data = await self.client.download(
                             parsed_url.netloc, parsed_url.path.strip("/"))
                         filename = parent_event_info.event.body
-                        print(f'filename: {filename}')
 
                         # Write image data to file
                         if encrypted_image is False:
@@ -366,7 +366,7 @@ class ProcessMedia(object):
 
     async def source(self, filename, event_id):
         # Send source URL
-        text = get_source(filename)
+        text = get_source(filename, self.saucenaotoken)
         await send_text_to_room(self.client, self.room.room_id, text, event_id)
 
         """

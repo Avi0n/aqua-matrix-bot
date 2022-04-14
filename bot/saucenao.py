@@ -13,23 +13,13 @@ from random import randint
 import requests
 from PIL import Image
 
-from config import Config
-
 sys.stdout = codecs.getwriter('utf8')(sys.stdout.detach())
 sys.stderr = codecs.getwriter('utf8')(sys.stderr.detach())
 
-# Read config file
-# A different config file path can be specified as the first command line argument
-if len(sys.argv) > 1:
-    config_filepath = sys.argv[1]
-else:
-    config_filepath = "config.yaml"
-config = Config(config_filepath)
-
 
 # Search for source from SauceNao and return string i.e. "This might be it: URL"
-def get_source(file_name):
-    api_key = config.saucenaotoken
+def get_source(file_name, token):
+    api_key = token
     #EnableRename = False
     minsim = '68!'
 
