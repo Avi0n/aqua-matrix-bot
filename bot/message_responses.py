@@ -335,9 +335,7 @@ class ProcessMedia(object):
                                                self.event.source["sender"])
                 except Exception as e:
                     print(f"Exception while in hash process: {e}")
-                
 
-                reposted_bool = False
                 # Send reactions
                 await send_reactions_to_message(self.client, self.room.room_id,
                                                 self.event.event_id, reposted_bool)
