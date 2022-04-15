@@ -113,9 +113,9 @@ async def main():
             logger.warning("Timed out while syncing with homeserver, retrying in 15s...")
             sleep(15)
 
-        #except AttributeError:
-        #    logger.warning("AttributeError, retrying in 15s...")
-        #    sleep(15)
+        except AttributeError:
+            logger.warning("AttributeError, retrying in 15s...")
+            sleep(15)
 
         finally:
             # Make sure to close the client connection on disconnect

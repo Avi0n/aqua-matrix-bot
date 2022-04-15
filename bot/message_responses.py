@@ -203,7 +203,7 @@ class ProcessMedia(object):
             msgtype = self.event.source["content"]["msgtype"]
             if msgtype == "m.video":
                 await send_reactions_to_message(self.client, self.room.room_id,
-                                                self.event.event_id, False)
+                                                self.event.event_id, False, False)
             elif msgtype == "m.image":
                 # See if it's E2EE
                 try:
@@ -326,9 +326,14 @@ class ProcessMedia(object):
                 except Exception as e:
                     print(f"Exception while in hash process: {e}")
 
-                # Send reactions
-                await send_reactions_to_message(self.client, self.room.room_id,
-                                                self.event.event_id, reposted_bool)
+                # Send reactions. Attach source if room alias includes dtp
+                # TODO: Make dtp a config option
+                if "dtp" in self.room.canonical_alias:
+                    await send_reactions_to_message(self.client, self.room.room_id,
+                                                    self.event.event_id, reposted_bool, True)
+                else:
+                    await send_reactions_to_message(self.client, self.room.room_id,
+                                                    self.event.event_id, reposted_bool, False)
         except KeyError:
             pass
 

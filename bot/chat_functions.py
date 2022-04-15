@@ -127,10 +127,13 @@ async def react_to_event(
 
 # Used to be rate_limit=3
 #throttler = Throttler(rate_limit=16, period=30)
-async def send_reactions_to_message(client, room_id, event_id, repost):
+async def send_reactions_to_message(client, room_id, event_id, repost, source_reaction):
     #async with throttler:
     if repost is False:
-        emoji_list = ["👍", "👌", "❤", "Source"]
+        if source_reaction is True:
+            emoji_list = ["👍", "👌", "❤", "Source"]
+        else:
+            emoji_list = ["👍", "👌", "❤"]
     elif repost is True:
         #emoji_list = ["Repost", "👍", "👌", "❤"]
         emoji_list = ["Repost", "\ud83d\udc4d", "\ud83d\udc4c", "\u2764"]
