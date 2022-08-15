@@ -138,7 +138,7 @@ def get_source(file_name, token):
                                     'Bad image or other request error. Returning...'
                                 )
                                 processResults = False
-                                time.sleep(10)
+                                return "Bad image or API error."
                                 break
                     else:
                         #General issue, api did not respond. Normal site took over for this error state.
@@ -146,7 +146,7 @@ def get_source(file_name, token):
                         print(
                             'Bad image, or API failure. Returning...')
                         processResults = False
-                        time.sleep(10)
+                        return "Bad image or API failure."
                         break
 
             if processResults:

@@ -135,8 +135,7 @@ async def send_reactions_to_message(client, room_id, event_id, repost, source_re
         else:
             emoji_list = ["👍", "👌", "❤"]
     elif repost is True:
-        #emoji_list = ["Repost", "👍", "👌", "❤"]
-        emoji_list = ["Repost", "\ud83d\udc4d", "\ud83d\udc4c", "\u2764"]
+        emoji_list = ["Repost", "👍", "👌", "❤"]
 
     for x in emoji_list:
         await asyncio.sleep(0.1)
