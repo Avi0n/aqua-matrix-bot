@@ -146,10 +146,14 @@ class ProcessMedia(object):
                                     await send_text_to_room(
                                         self.client, self.room.room_id, text,
                                         False, True, parent_event_id)
+                                    # Create HREF link to message
+                                    message_id_href = f'<a href="https://matrix.to/#/{self.room.room_id}/{event_id_dupe_list[x]}">Here</a>'
+                                    print(f'message_id_href: {message_id_href}')
+                                    
                                     # Reply to first occurance
                                     await send_text_to_room(
                                         self.client, self.room.room_id,
-                                        "Here is the first occurance (if it hasn't been deleted).",
+                                        f"{message_id_href} is the first occurance (if it hasn't been deleted).",
                                         False, True, event_id_dupe_list[x])
                                     break
                         print(f"dupes_30d: {dupes_30}")
