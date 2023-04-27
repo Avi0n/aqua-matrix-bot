@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-from urllib.parse import urlparse
 
 import aiofiles
 import emoji
@@ -162,17 +161,6 @@ class ProcessMedia(object):
                         print(f'Exception in Repost: {e}')
 
                 elif reaction == "Source":
-                    """
-                    Need to figure out a way to get the associated URL to download the original image.
-                    Can't just use event_id because that's the event_id for the reaction.
-                    """
-                    """
-                    async def room_get_event(
-                        self,
-                        room_id: str,
-                        event_id: str)
-                    """
-
                     parent_event_id = self.event.source["content"][
                         "m.relates_to"]["event_id"]
                     parent_event_info = await self.client.room_get_event(
@@ -212,17 +200,10 @@ class ProcessMedia(object):
                     except Exception as e:
                         print(
                             f"Exception while trying to assign file URL: {e}")
-                    try:
-                        parsed_url = urlparse(image_url)
-                    except Exception as e:
-                        print(
-                            f"Exception while trying to assign E2EE thumbnail: {e}"
-                        )
 
                     try:
                         # Download image data
-                        media_data = await self.client.download(
-                            parsed_url.netloc, parsed_url.path.strip("/"))
+                        media_data = await self.client.download(mxc=image_url)
                         filename = parent_event_info.event.body
 
                         # Write image data to file
@@ -328,17 +309,10 @@ class ProcessMedia(object):
                                 "url"]
                 except Exception as e:
                     print(f"Exception while trying to assign file URL: {e}")
-                try:
-                    parsed_url = urlparse(image_url)
-                except Exception as e:
-                    print(
-                        f"Exception while trying to assign E2EE thumbnail: {e}"
-                    )
 
                 try:
                     # Download image data
-                    media_data = await self.client.download(
-                        parsed_url.netloc, parsed_url.path.strip("/"))
+                    media_data = await self.client.download(mxc=image_url)
                     filename = self.event.body
 
                     # Write image data to file

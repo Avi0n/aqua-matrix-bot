@@ -4,6 +4,7 @@ import logging
 import asyncio
 import sys
 from time import sleep
+import pkg_resources
 from nio import (
     AsyncClient,
     AsyncClientConfig,
@@ -26,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 async def main():
-    logger.info("Starting Aqua Matrix Bot v0.4.1")
+    print("Starting Aqua Matrix Bot v0.4.2")
+    print(f'matrix-nio v{pkg_resources.get_distribution("matrix-nio").version}')
     # Check to see if all db tables exist
     check_dbs_exist()
 
